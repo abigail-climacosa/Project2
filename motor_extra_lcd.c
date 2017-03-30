@@ -9,20 +9,12 @@
 
 #define SYSCLK    48000000L // SYSCLK frequency in Hz
 #define BAUDRATE  115200L   // Baud rate of UART in bps
-#define LCD_RS P2_2
-#define LCD_RW P2_1 // Not used in this code
-#define LCD_E  P2_0
-#define LCD_D4 P1_3
-#define LCD_D5 P1_2
-#define LCD_D6 P1_1
-#define LCD_D7 P1_0
-#define CHARS_PER_LINE 16
 
-#define LEFT1 P2_6
-#define LEFT2 P2_5
-#define RIGHT1 P2_4
-#define RIGHT2 P2_3
-#define START_STOP P2_7   // 1 to start, 0 to stop
+#define LEFT1 P2_7
+#define LEFT2 P2_6
+#define RIGHT1 P2_5
+#define RIGHT2 P2_4
+#define START_STOP P2_7   // 1 to start, 0 to s
 
 char buffer[33]; // for turning int into string for LCD
 volatile unsigned char pwm_count=0;
@@ -118,77 +110,6 @@ void waitms (unsigned int ms)
 		Timer3us(250);
 	}
 }
-void LCD_pulse (void)
-{
-	LCD_E=1;
-	Timer3us(40);
-	LCD_E=0;
-}
-
-void LCD_byte (unsigned char x)
-{
-	// The accumulator in the C8051Fxxx is bit addressable!
-	ACC=x; //Send high nible
-	LCD_D7=ACC_7;
-	LCD_D6=ACC_6;
-	LCD_D5=ACC_5;
-	LCD_D4=ACC_4;
-	LCD_pulse();
-	Timer3us(40);
-	ACC=x; //Send low nible
-	LCD_D7=ACC_3;
-	LCD_D6=ACC_2;
-	LCD_D5=ACC_1;
-	LCD_D4=ACC_0;
-	LCD_pulse();
-}
-
-void WriteData (unsigned char x)
-{
-	LCD_RS=1;
-	LCD_byte(x);
-	waitms(2);
-}
-
-void WriteCommand (unsigned char x)
-{
-	LCD_RS=0;
-	LCD_byte(x);
-	waitms(5);
-}
-
-void LCD_4BIT (void)
-{
-	LCD_E=0; // Resting state of LCD's enable is zero
-	LCD_RW=0; // We are only writing to the LCD in this program
-	waitms(20);
-	// First make sure the LCD is in 8-bit mode and then change to 4-bit mode
-	WriteCommand(0x33);
-	WriteCommand(0x33);
-	WriteCommand(0x32); // Change to 4-bit mode
-
-	// Configure the LCD
-	WriteCommand(0x28);
-	WriteCommand(0x0c);
-	WriteCommand(0x01); // Clear screen command (takes some time)
-	waitms(20); // Wait for clear screen command to finsih.
-}
-
-void LCDprint(char * string)
-{
-	int j;
-
-	//WriteCommand(line==2?0xc0:0x80);
-	waitms(5);
-	for(j=0; string[j]!=0; j++)	WriteData(string[j]);// Write the message
-	//if(clear) for(; j<CHARS_PER_LINE; j++) WriteData(' '); // Clear the rest of the line
-}
-
-void LCDintPrint(float number){
-	sprintf(buffer, "%5.3f", number);
-}
-
-
 
 	volatile int pwm1; //left wheel motor for pin 2.6
 	volatile int pwm2; //left wheel motor for pin 2.5
@@ -235,17 +156,6 @@ void main (void)
 	pwm1_temp = pwm1;
 	pwm2_temp = pwm2;
 	
-	//Printing on LCD
-	WriteCommand(0x80); //sets cursor to first row
-	LCDprint("PWM1:");
-	LCDintPrint(pwm1);
-	LCDprint(buffer);
-	
-	WriteCommand(0xC0);
-	LCDprint("PWM2:");
-	LCDintPrint(pwm2);
-	LCDprint(buffer);
-	
 	while(1)
 	{
         if(START_STOP == 0){
@@ -273,17 +183,6 @@ void main (void)
       	}
         }
          
-   	//Printing on LCD
-	WriteCommand(0x80); //sets cursor to first row
-	LCDprint("PWM1:");
-	LCDintPrint(pwm1);
-	LCDprint(buffer);
-	
-	WriteCommand(0xC0);
-	LCDprint("PWM2:");
-	LCDintPrint(pwm2);
-	LCDprint(buffer);
-	
     }
    
 }
