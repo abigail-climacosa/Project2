@@ -9,20 +9,12 @@
 
 #define SYSCLK    48000000L // SYSCLK frequency in Hz
 #define BAUDRATE  115200L   // Baud rate of UART in bps
-#define LCD_RS P2_2
-#define LCD_RW P2_1 // Not used in this code
-#define LCD_E  P2_0
-#define LCD_D4 P1_3
-#define LCD_D5 P1_2
-#define LCD_D6 P1_1
-#define LCD_D7 P1_0
-#define CHARS_PER_LINE 16
 
-#define LEFT1 P2_6
-#define LEFT2 P2_5
-#define RIGHT1 P2_4
-#define RIGHT2 P2_3
-#define START_STOP P2_7   // 1 to start, 0 to stop
+#define LEFT1 P2_7
+#define LEFT2 P2_6
+#define RIGHT1 P2_5
+#define RIGHT2 P2_4
+//#define START_STOP P2_2
 
 char buffer[33]; // for turning int into string for LCD
 volatile unsigned char pwm_count=0;
@@ -88,6 +80,65 @@ char _c51_external_startup (void)
 	return 0;
 }
 
+void PORT_Init (void)
+{
+	P0MDOUT |= 0x10; // Enable UART TX as push-pull output
+	XBR0=0b_0000_0001; // Enable UART on P0.4(TX) and P0.5(RX)                    
+	XBR1=0b_0101_0000; // Enable crossbar.  Enable T0 input.
+	XBR2=0b_0000_0000;
+}
+
+void SYSCLK_Init (void)
+{
+	// CLKSEL&=0b_1111_1000; // Not needed because CLKSEL==0 after reset
+#if (SYSCLK == 12000000L)
+	//CLKSEL|=0b_0000_0000;  // SYSCLK derived from the Internal High-Frequency Oscillator / 4 
+#elif (SYSCLK == 24000000L)
+	CLKSEL|=0b_0000_0010; // SYSCLK derived from the Internal High-Frequency Oscillator / 2.
+#elif (SYSCLK == 48000000L)
+	CLKSEL|=0b_0000_0011; // SYSCLK derived from the Internal High-Frequency Oscillator / 1.
+#else
+	#error SYSCLK must be either 12000000L, 24000000L, or 48000000L
+#endif
+	OSCICN |= 0x03;   // Configure internal oscillator for its maximum frequency
+	RSTSRC  = 0x04;   // Enable missing clock detector
+}
+
+
+void UART0_Init (void)
+{
+	SCON0 = 0x10;
+   
+#if (SYSCLK/BAUDRATE/2L/256L < 1)
+	TH1 = 0x10000-((SYSCLK/BAUDRATE)/2L);
+	CKCON &= ~0x0B;                  // T1M = 1; SCA1:0 = xx
+	CKCON |=  0x08;
+#elif (SYSCLK/BAUDRATE/2L/256L < 4)
+	TH1 = 0x10000-(SYSCLK/BAUDRATE/2L/4L);
+	CKCON &= ~0x0B; // T1M = 0; SCA1:0 = 01                  
+	CKCON |=  0x01;
+#elif (SYSCLK/BAUDRATE/2L/256L < 12)
+	TH1 = 0x10000-(SYSCLK/BAUDRATE/2L/12L);
+	CKCON &= ~0x0B; // T1M = 0; SCA1:0 = 00
+#else
+	TH1 = 0x10000-(SYSCLK/BAUDRATE/2/48);
+	CKCON &= ~0x0B; // T1M = 0; SCA1:0 = 10
+	CKCON |=  0x02;
+#endif
+	TL1 = TH1;      // Init Timer1
+	TMOD &= ~0xf0;  // TMOD: timer 1 in 8-bit autoreload
+	TMOD |=  0x20;                       
+	TR1 = 1; // START Timer1
+	TI = 1;  // Indicate TX0 ready
+}
+
+ void TIMER0_Init(void)
+{
+	TMOD&=0b_1111_0000; // Set the bits of Timer/Counter 0 to zero
+	TMOD|=0b_0000_0001; // Timer/Counter 0 used as a 16-bit timer
+	TR0=0; // Stop Timer/Counter 0
+}
+
 void Timer3us(unsigned char us)
 {
 	unsigned char i;               // usec counter
@@ -107,6 +158,60 @@ void Timer3us(unsigned char us)
 	TMR3CN = 0 ;                   // Stop Timer3 and clear overflow flag
 }
 
+void InitADC (void)
+{
+	// Init ADC
+	ADC0CF = 0xF8; // SAR clock = 31, Right-justified result
+	ADC0CN = 0b_1000_0000; // AD0EN=1, AD0TM=0
+  	REF0CN = 0b_0000_1000; //Select VDD as the voltage reference for the converter
+}
+
+void InitPinADC (unsigned char portno, unsigned char pinno)
+{
+	unsigned char mask;
+	
+	mask=1<<pinno;
+	
+	switch (portno)
+	{
+		case 0:
+			P0MDIN &= (~mask); // Set pin as analog input
+			P0SKIP |= mask; // Skip Crossbar decoding for this pin
+		break;
+		case 1:
+			P1MDIN &= (~mask); // Set pin as analog input
+			P1SKIP |= mask; // Skip Crossbar decoding for this pin
+		break;
+		case 2:
+			P2MDIN &= (~mask); // Set pin as analog input
+			P2SKIP |= mask; // Skip Crossbar decoding for this pin
+		break;
+		case 3:
+			P3MDIN &= (~mask); // Set pin as analog input
+			P3SKIP |= mask; // Skip Crossbar decoding for this pin
+		break;
+		default:
+		break;
+	}
+}
+
+unsigned int ADC_at_Pin(unsigned char pin)
+{
+	AMX0P = pin;             // Select positive input from pin
+	AMX0N = LQFP32_MUX_GND;  // GND is negative input (Single-ended Mode)
+	// Dummy conversion first to select new pin
+	AD0BUSY=1;
+	while (AD0BUSY); // Wait for dummy conversion to finish
+	// Convert voltage at the pin
+	AD0BUSY = 1;
+	while (AD0BUSY); // Wait for conversion to complete
+	return (ADC0L+(ADC0H*0x100));
+}
+
+float Volts_at_Pin(unsigned char pin)
+{
+	 return ((ADC_at_Pin(pin)*3.30)/1024.0);
+}
 void waitms (unsigned int ms)
 {
 	unsigned int j;
@@ -118,77 +223,6 @@ void waitms (unsigned int ms)
 		Timer3us(250);
 	}
 }
-void LCD_pulse (void)
-{
-	LCD_E=1;
-	Timer3us(40);
-	LCD_E=0;
-}
-
-void LCD_byte (unsigned char x)
-{
-	// The accumulator in the C8051Fxxx is bit addressable!
-	ACC=x; //Send high nible
-	LCD_D7=ACC_7;
-	LCD_D6=ACC_6;
-	LCD_D5=ACC_5;
-	LCD_D4=ACC_4;
-	LCD_pulse();
-	Timer3us(40);
-	ACC=x; //Send low nible
-	LCD_D7=ACC_3;
-	LCD_D6=ACC_2;
-	LCD_D5=ACC_1;
-	LCD_D4=ACC_0;
-	LCD_pulse();
-}
-
-void WriteData (unsigned char x)
-{
-	LCD_RS=1;
-	LCD_byte(x);
-	waitms(2);
-}
-
-void WriteCommand (unsigned char x)
-{
-	LCD_RS=0;
-	LCD_byte(x);
-	waitms(5);
-}
-
-void LCD_4BIT (void)
-{
-	LCD_E=0; // Resting state of LCD's enable is zero
-	LCD_RW=0; // We are only writing to the LCD in this program
-	waitms(20);
-	// First make sure the LCD is in 8-bit mode and then change to 4-bit mode
-	WriteCommand(0x33);
-	WriteCommand(0x33);
-	WriteCommand(0x32); // Change to 4-bit mode
-
-	// Configure the LCD
-	WriteCommand(0x28);
-	WriteCommand(0x0c);
-	WriteCommand(0x01); // Clear screen command (takes some time)
-	waitms(20); // Wait for clear screen command to finsih.
-}
-
-void LCDprint(char * string)
-{
-	int j;
-
-	//WriteCommand(line==2?0xc0:0x80);
-	waitms(5);
-	for(j=0; string[j]!=0; j++)	WriteData(string[j]);// Write the message
-	//if(clear) for(; j<CHARS_PER_LINE; j++) WriteData(' '); // Clear the rest of the line
-}
-
-void LCDintPrint(float number){
-	sprintf(buffer, "%5.3f", number);
-}
-
-
 
 	volatile int pwm1; //left wheel motor for pin 2.6
 	volatile int pwm2; //left wheel motor for pin 2.5
@@ -215,75 +249,100 @@ void Timer2_ISR (void) interrupt 5
 }
 
 void main (void)
-{
+{	
+	float deltaV;
+	float x=0.0;
+	volatile float V[4];
+	PORT_Init();     // Initialize Port I/O
+	SYSCLK_Init ();  // Initialize Oscillator
+	UART0_Init();    // Initialize UART0
+	TIMER0_Init();
+
 	
-	LCD_4BIT();
+	InitADC();
+	InitPinADC(2, 0); // Configure P2.0 as analog input ---  middle inductor
+	InitPinADC(2, 1); // Configure P2.1 as analog input ---  left inductor
+	InitPinADC(2, 2); // Configure P2.2 as analog input ---  right inductor
 	pwm1_stop = 50;
 	pwm2_stop = 50;
 	
 	stop_flag = 1;
 	
-	printf("\x1b[2J"); // Clear screen using ANSI escape sequence.
+/*	printf("\x1b[2J"); // Clear screen using ANSI escape sequence.
 	printf("\rEnter pwm 1 value for left signal:");
-	scanf("%d\n", &pwm1);
+	scanf("%d\n", &pwm1);// smaller than pwm2 goes forward 
 	printf("\nEnter pwm 2 value for left signal:");
 	scanf("%d\n", &pwm2);
-	printf("\rEnter pwm 3 value for right signal:");
-	scanf("%d\n", &pwm3);
-	printf("\rEnter pwm 4 value for right signal:");
+	printf("\nEnter pwm 3 value for right signal:");
+	scanf("%d\n", &pwm3);//smaller value goes forward
+	printf("\nEnter pwm 4 value for right signal:");
 	scanf("%d\n", &pwm4);
 	pwm1_temp = pwm1;
 	pwm2_temp = pwm2;
-	
-	//Printing on LCD
-	WriteCommand(0x80); //sets cursor to first row
-	LCDprint("PWM1:");
-	LCDintPrint(pwm1);
-	LCDprint(buffer);
-	
-	WriteCommand(0xC0);
-	LCDprint("PWM2:");
-	LCDintPrint(pwm2);
-	LCDprint(buffer);
+	*/
 	
 	while(1)
 	{
-        if(START_STOP == 0){
-            
-            waitms(50);
-    
-           if(START_STOP == 0){
-           		
-           	while (START_STOP == 0){};
+	    V[0]=Volts_at_Pin(LQFP32_MUX_P2_0); //middle inductor
+        V[2]=Volts_at_Pin(LQFP32_MUX_P2_1); //left inductor
+   		V[1]=Volts_at_Pin(LQFP32_MUX_P2_2); //right inductor
+   		if(V[1] > V[2]){
+   		deltaV = V[1] - V[2];
+   		}
+   		else if(V[2] > V[1]){
+   		deltaV = V[2] - V[1];
+   		}
+   		else{
+   		deltaV = 0.0;
+   		}
+   		//deltaV = abs(V[1] - V[2]);
+   		//waitms(500);
+   		printf("Vmiddle=%5.3f, Vleft=%5.3f, Vright=%5.3f, delta =%5.3f\r",V[0], V[1], V[2], deltaV);
+        
 
-            if(stop_flag == 0){ //click again, starts motor
-            	stop_flag = 1;
-            	}
-            else if(stop_flag == 1){ //stops the motor
-            	stop_flag = 0;
-            	}
-            if(stop_flag == 0){
-                pwm1 = 0;
-                pwm2 = 0;
-                } 
-            else if(stop_flag == 1){
-        	pwm1=pwm1_temp;
-        	pwm2=pwm2_temp;
+        if(V[2]/V[1] == 1 ){
+        	pwm1 = 0;  //0
+        	pwm2 = 100;  //100
+        	pwm3 = 0;  //0
+        	pwm4 = 100;} //100
+        	
+        if(V[1]>V[2]){ //right wheel is closer than left wheel, decrease right pwm
+        	pwm1 = 0;    // set left wheel at highest speed
+        	pwm2 = 100; 
+        	if(deltaV >= 0.6){
+        	x = 0.0;
         	}
-      	}
-        }
-         
-   	//Printing on LCD
-	WriteCommand(0x80); //sets cursor to first row
-	LCDprint("PWM1:");
-	LCDintPrint(pwm1);
-	LCDprint(buffer);
-	
-	WriteCommand(0xC0);
-	LCDprint("PWM2:");
-	LCDintPrint(pwm2);
-	LCDprint(buffer);
-	
+        	if(deltaV >= 0.3 && deltaV < 6){
+        	x = 100.0*(deltaV/0.6);
+        	}
+        	if(deltaV < 0.3) {
+        	x = (100.0*(deltaV/0.6))/1.5; 
+        	}
+        	if(deltaV <= 0.1){
+        	x = 0.0;
+        	}
+        	pwm3 = 0;
+        	pwm4 = 100.0 - x; //100
+        	}
+        	
+        if(V[1]<V[2]){ //left wheel is closer, decrease left pwm
+        	pwm3 = 0;
+        	pwm4 = 100;
+        	if(deltaV >= 0.6){
+        	x = 0.0;
+        	}
+        	if(deltaV >= 0.3 && deltaV < 0.6){
+        	x = 100.0*(deltaV/0.6);
+        	}
+        	if(deltaV < 0.3) {
+        	x = (100.0*(deltaV/0.6))/1.5;
+        	}
+        	if(deltaV <= 0.1){
+        	x = 0.0;
+        	}
+        	pwm1 = 0;
+        	pwm2 = 100.0 - x; //100
+        	} 
     }
    
 }
