@@ -14,11 +14,6 @@
 #define LEFT2 P2_6
 #define RIGHT1 P2_5
 #define RIGHT2 P2_4
-<<<<<<< HEAD
-#define START_STOP P2_7   // 1 to start, 0 to s
-=======
-//#define START_STOP P2_2
->>>>>>> 53cbcf637283af631adaaf5db69e256520366ac6
 
 char buffer[33]; // for turning int into string for LCD
 volatile unsigned char pwm_count=0;
@@ -290,7 +285,7 @@ void main (void)
 <<<<<<< HEAD
 =======
 	*/
->>>>>>> 53cbcf637283af631adaaf5db69e256520366ac6
+
 	
 	while(1)
 	{
@@ -316,19 +311,8 @@ void main (void)
         	pwm2 = 100;
         	pwm3 = 100;
         	pwm4 = 100;
-        //	if(deltaV<=1){
-        //	flag = 0;
-        //	pwm1 = 100;
-        //	pwm2 = 100;
-        //	pwm3 = 100;
-        //	pwm4 = 100;
-        //	}
 			}
 			
-        	/*pwm1 = 100;
-        	pwm2 = 100;
-        	pwm3 = 100;
-        	pwm4 = 100;*/
         
         if(V[2]/V[1] == 1 ){
         	pwm1 = 0;  //0
@@ -342,11 +326,9 @@ void main (void)
         	if(deltaV >= 0.6){
         	x = 0.0;
         	}
-<<<<<<< HEAD
       	}
         }
          
-=======
         	if(deltaV >= 0.5 && deltaV < 6){
         	x = 100.0*(deltaV/0.6);
         	}
@@ -379,8 +361,6 @@ void main (void)
         	pwm2 = 100.0 - x; //100
         	} 
         	
-        
->>>>>>> 53cbcf637283af631adaaf5db69e256520366ac6
     }
    
 }
