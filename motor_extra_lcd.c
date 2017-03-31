@@ -253,6 +253,7 @@ void main (void)
 	float deltaV;
 	float x=0.0;
 	volatile float V[4];
+	int flag=1;
 	PORT_Init();     // Initialize Port I/O
 	SYSCLK_Init ();  // Initialize Oscillator
 	UART0_Init();    // Initialize UART0
@@ -283,6 +284,7 @@ void main (void)
 	
 	while(1)
 	{
+		
 	    V[0]=Volts_at_Pin(LQFP32_MUX_P2_0); //middle inductor
         V[2]=Volts_at_Pin(LQFP32_MUX_P2_1); //left inductor
    		V[1]=Volts_at_Pin(LQFP32_MUX_P2_2); //right inductor
@@ -299,7 +301,25 @@ void main (void)
    		//waitms(500);
    		printf("Vmiddle=%5.3f, Vleft=%5.3f, Vright=%5.3f, delta =%5.3f\r",V[0], V[1], V[2], deltaV);
         
-
+		while(V[0] >= 2.2){
+			pwm1 = 100;
+        	pwm2 = 100;
+        	pwm3 = 100;
+        	pwm4 = 100;
+        //	if(deltaV<=1){
+        //	flag = 0;
+        //	pwm1 = 100;
+        //	pwm2 = 100;
+        //	pwm3 = 100;
+        //	pwm4 = 100;
+        //	}
+			}
+			
+        	/*pwm1 = 100;
+        	pwm2 = 100;
+        	pwm3 = 100;
+        	pwm4 = 100;*/
+        
         if(V[2]/V[1] == 1 ){
         	pwm1 = 0;  //0
         	pwm2 = 100;  //100
@@ -312,10 +332,10 @@ void main (void)
         	if(deltaV >= 0.6){
         	x = 0.0;
         	}
-        	if(deltaV >= 0.3 && deltaV < 6){
+        	if(deltaV >= 0.5 && deltaV < 6){
         	x = 100.0*(deltaV/0.6);
         	}
-        	if(deltaV < 0.3) {
+        	if(deltaV < 0.5) {
         	x = (100.0*(deltaV/0.6))/1.5; 
         	}
         	if(deltaV <= 0.1){
@@ -331,10 +351,10 @@ void main (void)
         	if(deltaV >= 0.6){
         	x = 0.0;
         	}
-        	if(deltaV >= 0.3 && deltaV < 0.6){
+        	if(deltaV >= 0.5 && deltaV < 0.6){
         	x = 100.0*(deltaV/0.6);
         	}
-        	if(deltaV < 0.3) {
+        	if(deltaV < 0.5) {
         	x = (100.0*(deltaV/0.6))/1.5;
         	}
         	if(deltaV <= 0.1){
@@ -343,6 +363,8 @@ void main (void)
         	pwm1 = 0;
         	pwm2 = 100.0 - x; //100
         	} 
+        	
+        
     }
    
 }
