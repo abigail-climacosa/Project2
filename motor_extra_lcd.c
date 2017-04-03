@@ -574,38 +574,108 @@ void main (void)
 		printf("Vmiddle=%5.3f, Vright=%5.3f, Vleft=%5.3f, delta =%5.3f\r",V[0], V[1], V[2], deltaV);
 		 
 		// Go "forward"
-		 
-		if(V[2]/V[1] == 1 && stopflag==0  && back_flag==1){ //when right wheel = left wheel
-        	pwm1 = 60; 
+		/*
+		 if(V[0]>1.5){
+			pwm1=0;
+			pwm2=0;
+			pwm3=40;
+			pwm4=0;
+			printf("1\n");
+		 }
+		 */
+		 // if middle inductor voltage is close to zero, move forward
+		if(V[0]<0.6){
+			pwm1=40;
+			pwm2=0;
+			pwm3=40;
+			pwm4=0;
+			printf("forward\n");
+			}
+			
+		// adjusts car position until the middle inductor value is close to zero	
+		 if(V[0]>0.6 && V[0]<1.9){
+			 
+			printf("adjustment"); 
+			 
+			// adjust, turn to left
+			// right inductor > left inductor
+			if (V[1] > V[2]) {
+				pwm1=20;
+				pwm2=0;
+				pwm3=0;
+				pwm4=0;
+				waitms(100);
+				pwm1 = 0;
+				pwm2 = 0;
+				pwm3 = 5;
+				pwm4 = 0;
+			}
+			// adjust, turn right
+			// right inductor < left inductor
+			if (V[1] < V[2]) {
+				pwm1 = 0;
+				pwm2 = 0;
+				pwm3 = 20;
+				pwm4 = 0;
+				waitms(100);
+				pwm1 = 5;
+				pwm2 = 0;
+				pwm3 = 0;
+				pwm4 = 0;
+				
+			}
+				
+		 }	
+		// turn 
+		if (V[0] > 1.9) && (deltaV > 1.0 ) {
+			printf("turning");
+			 //turn left
+			 if (V[1] > V[2]) {
+				 pwm1 = 20;
+				 pwm2 = 0;
+				 pwm3 = 0;
+				 pwm4 = 0;
+			 }
+			 // turn right
+			 if (V[1] < V[2]) {
+				pwm1 = 0;
+				pwm2 = 0;
+				pwm3 = 20;
+				pwm4 = 0;		 
+			}
+		}
+		
+		/*if(V[2]/V[1] == 1 && stopflag==0  && back_flag==1){ //when right wheel = left wheel
+        	pwm1 = 40; 
         	pwm2 = 0;  
-       		pwm3 = 60;
+       		pwm3 = 40;
         	pwm4 = 0;  
        	 } 
         	
         // V"right">V"left"
         // Turn left	
         if(V[1]>V[2]  && stopflag==0 && back_flag==1){ //right wheel is closer than left wheel, decrease right pwm Vleft>Vright
-        	pwm1 = 60; 
+        	pwm1 = 40; 
         	pwm2 = 0;    // set right wheel speed
         	if(deltaV >= 0.5){
         		x = 0.0;
         		pwm3 = 0.0;
-        		pwm4 = 60.0 - x;
+        		pwm4 = 40.0 - x;
         	}   
         	if(deltaV >= 0.4 && deltaV < 0.5){
         		x = 100.0*(deltaV/0.6);
         		pwm3 = 0.0;
-        		pwm4 = 60.0 - x;
+        		pwm4 = 40.0 - x;
        
         	}
         	if(deltaV < 0.4 && deltaV > 0.1) {
         		x = (100.0*(deltaV/0.6))/1.5; 
-        		pwm3 = 60.0 - x;
+        		pwm3 = 40.0 - x;
         		pwm4 = 0.0;
         	}
         	if(deltaV <= 0.1){
         		x = 0.0;
-        		pwm3 = 60.0 - x;
+        		pwm3 = 40.0 - x;
         		pwm4 = 0.0;
         	}
          
@@ -614,32 +684,32 @@ void main (void)
     	// V"right"<V"left"
     	//Turn Right
         if(V[1]<V[2]  && stopflag==0 && back_flag==1){ 
-        	pwm3 = 60;
+        	pwm3 = 40;
         	pwm4 = 0;  //set "left" wheel at max speed
         	// turn "right"
         	if(deltaV >= 0.5){
         		//x = 0.0;
         		pwm1 = 0;
-        		pwm2 = 60;
+        		pwm2 = 40;
         	}
         	// adjust "right" wheel speed to correct car
         	if(deltaV >= 0.3 && deltaV < 0.5){
         		x = 100.0*(deltaV/0.6);
         		pwm1 = 0;
-        		pwm2 = 60 - x;
+        		pwm2 = 40 - x;
         	}
         	if(deltaV < 0.3 && deltaV > 0.1) {
         		x = (100.0*(deltaV/0.6))/1.5;
-        		pwm1 = 60 - x;
+        		pwm1 = 40 - x;
         		pwm2 = 0;
         	}
         	// go "forward"
         	if(deltaV <= 0.1){
         		//x = 0.0;
-        		pwm1 = 60;
+        		pwm1 = 40;
         		pwm2 = 0;
         	}
-        }
+        }*/
        
     }
    
