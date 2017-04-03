@@ -233,7 +233,7 @@ void waitms (unsigned int ms)
     volatile int pwm3_temp;
     volatile int pwm4_temp;
 
-void checkinstruction(int);
+void checkinstruction(float);
 void car_go(void);
 void stop(void);
 
@@ -251,22 +251,27 @@ void Timer2_ISR (void) interrupt 5
 	
 }
 
-unsigned int stopflag=0;
+int stopflag=0;
 unsigned int turnleftflag=0;
 unsigned int turnrightflag=0;
 
+
+
 void main (void)
 {	
-	
-	float deltaV;
+
 	float x=0.0;
+	float deltaV;
 	volatile float V[4];
-//	float Period;
+	float Period;
 	int flag=0;  //for intersection
 	int flagcomp=0;
 //	stopflag=1;
 //	float comparator_counter;
 	int count=0;
+	int start_timer_flag = 0;
+	int turn_180_flag = 1;
+
 	PORT_Init();     // Initialize Port I/O
 	SYSCLK_Init ();  // Initialize Oscillator
 	UART0_Init();    // Initialize UART0
@@ -279,6 +284,10 @@ void main (void)
 	InitPinADC(2, 2); // Configure P2.2 as analog input ---  left inductor
 	
 	TF0 = 0;
+	
+
+	
+
 		
 	while(1)
 	{
@@ -288,29 +297,12 @@ void main (void)
         V[2]=Volts_at_Pin(LQFP32_MUX_P2_1); //right inductor
         
         
-	
-		if(Comparator == 0){
-        	count++;
-        	flagcomp=1;
-     		//printf("countnew= %d\n", count);
- 		
-        }
-        
-        if(Comparator == 1 && flagcomp==1){
-        	printf("count= %d\r", count);
-        	checkinstruction(count);
-        	flagcomp = 0;
-        	count = 0;
-        }
-        if(count>8000){
-        count=0;
-        }
-        
         if(stopflag==-1){
         pwm1=0;
         pwm2=0;
         pwm3=0;
         pwm4=0;
+        //start_timer_flag = 0;
         }
        	
        
@@ -324,31 +316,113 @@ void main (void)
    		deltaV = 0.0;
    		}
 
-   	//	printf("Vmiddle=%5.3f, Vleft=%5.3f, Vright=%5.3f, delta =%5.3f\r",V[0], V[1], V[2], deltaV);
+   		//printf("Vmiddle=%5.3f, Vleft=%5.3f, Vright=%5.3f, delta =%5.3f\r\n",V[0], V[1], V[2], deltaV);
         
-	/*	while(V[0] >= 2.2  && stopflag==0 && turnleftflag==1 ){  //detecting intersection, usually V[0] = 0
-			pwm1 = 100;     //for now it stops at an intersection
-        	pwm2 = 100;
-        	pwm3 = 100;
-        	pwm4 = 100;
-        	while(V[0] != 0 &&  ){
-        	pwm1= 0;
-        	pwm2=20;
-        	pwm3=80;
-        	pwm=0;
-        	}
+		/*if(V[0] >= 2.2  && stopflag==0 && turnrightflag == 1 ){  //detecting intersection, usually V[0] = 0, 
+				pwm1= 0;
+	            pwm2= 50;
+                pwm3= 50;
+                pwm4= 0;
+                waitms(500);
+                while(deltaV>0.2){
+                    //printf("Do we get here?\r");
+                    V[0]=Volts_at_Pin(LQFP32_MUX_P2_0); //middle inductor
+   					V[1]=Volts_at_Pin(LQFP32_MUX_P2_2); //left inductor
+        			V[2]=Volts_at_Pin(LQFP32_MUX_P2_1); //right inductor
+        			if(V[1] > V[2]){      //left wheel voltage > right wheel voltage
+   						deltaV = V[1] - V[2];
+   					}
+   					else if(V[2] > V[1]){ //right wheel voltage > left wheel voltage
+   						deltaV = V[2] - V[1];
+   					}
+   					else{                 //right wheel voltage = left wheel voltage
+   						deltaV = 0.0;
+   					}
+   					
+    	           	pwm1= 0;
+		           	pwm2= 100;
+    	           	pwm3= 100;
+    	           	pwm4= 0;
+	            }	
+	            //car_go();
+	            pwm1 = 0;
+	            pwm2 = 100;
+	            pwm3 = 0;
+	            pwm4 = 100;
+	            waitms(300);
+
+        	}*/
+        
+        	
+        /*
+			
+		if(V[0] >= 2.2  && stopflag==0 && turnleftflag==1 ){  //detecting intersection, usually V[0] = 0, 
+				pwm1= 80;
+	            pwm2= 0;
+                pwm3= 0;
+                pwm4= 80;
+                waitms(500);
+				while(deltaV>0.25){
+				//	printf("Do we get here? %5.3f\r", deltaV);
+                    V[0]=Volts_at_Pin(LQFP32_MUX_P2_0); //middle inductor
+   					V[1]=Volts_at_Pin(LQFP32_MUX_P2_2); //left inductor
+        			V[2]=Volts_at_Pin(LQFP32_MUX_P2_1); //right inductor
+        			if(V[1] > V[2]){      //left wheel voltage > right wheel voltage
+   						deltaV = V[1] - V[2];
+   					}
+   					else if(V[2] > V[1]){ //right wheel voltage > left wheel voltage
+   						deltaV = V[2] - V[1];
+   					}
+   					else{                 //right wheel voltage = left wheel voltage
+   						deltaV = 0.0;
+   					}
+   					
+    	           	pwm1= 100;
+		           	pwm2= 0;
+    	           	pwm3= 0;
+    	           	pwm4= 100;
+	            }	
+	            //car_go();
+	            pwm1 = 0;
+	            pwm2 = 100;
+	            pwm3 = 0;
+	            pwm4 = 100;
+	            waitms(300);
+			
+			}
+		*/
+		
+	//	turn_180();
+	
+		// turn 180
+		//Left wheel turns forward, right wheel turns backward
+	
+		
+		/*
+		while (V[0] > 0.17 && turn_180==1) {
+			pwm1 = 100;
+			pwm2 = 0;
+			pwm3 = 0;
+			pwm4 = 100;
 		}
-		while(V[0] >= 2.2  && stopflag==0 && turnrightflag==1 ){  //detecting intersection, usually V[0] = 0
-			pwm1 = 100;     //for now it stops at an intersection
-        	pwm2 = 100;
-        	pwm3 = 100;
-        	pwm4 = 100;
-        	while(//condition for middle inductor to be
-        	pwm1= 80;
-        	pwm2=0;
-        	pwm3=0;
-        	pwm=20;
-			}*/
+		
+		//Go forward
+		
+		pwm1 = 100;
+		pwm2 = 0;
+		pwm3 = 100;
+		pwm4 = 0;
+		
+		waitms(5000);
+		
+		turn_180 = 0;
+	*/
+	
+	
+	
+	
+
+			
 		// pwm1 left wheel motor for pin 2.7
  		// pwm2 left wheel motor for pin 2.6
 		// pwm3 right wheel motor for pin 2.5
@@ -364,71 +438,84 @@ void main (void)
         if(V[1]>V[2]  && stopflag==0){ //right wheel is closer than left wheel, decrease right pwm Vleft>Vright
         	pwm1 = 0;    // set left wheel at highest speed
         	pwm2 = 100; 
-        	if(deltaV >= 0.6){
+        	if(deltaV >= 0.5){
         		x = 0.0;
+        		pwm4 = 100.0 - x;
+        		pwm3 = 0.0;
         	}   
-        	if(deltaV >= 0.4 && deltaV < 0.6){
+        	if(deltaV >= 0.4 && deltaV < 0.5){
         		x = 100.0*(deltaV/0.6);
+        		pwm3 = 100.0 - x;
+        		pwm4 = 0.0;
         	}
-        	if(deltaV < 0.4) {
+        	if(deltaV < 0.4 && deltaV > 0.1) {
         		x = (100.0*(deltaV/0.6))/1.5; 
+        		pwm3 = 100.0 - x;
+        		pwm4 = 0.0;
         	}
         	if(deltaV <= 0.1){
         		x = 0.0;
+        		pwm3 = 100.0 - x;
+        		pwm4 = 0.0;
         	}
-        	pwm4 = 0;
-        	pwm3 = abs(20.0 - x); 
+        //	pwm4 = 0;
+        //	pwm3 = abs(40.0 - x); 
     	}
         	
         if(V[1]<V[2]  && stopflag==0){ //left wheel is closer, decrease left pwm.... Vleft<Vright
         	pwm3 = 0;  //set right wheel at max speed
         	pwm4 = 100;
-        	if(deltaV >= 0.6){
-        		x = 0.0;
+        	if(deltaV >= 0.5){
+        		//x = 0.0;
+        		pwm2 = 0;
+        		pwm1 = 100;
         	}
-        	if(deltaV >= 0.4 && deltaV < 0.6){
+        	if(deltaV >= 0.3 && deltaV < 0.5){
         		x = 100.0*(deltaV/0.6);
-        	
+        		pwm2 = 0;
+        		pwm1 = 100 - x;
         	}
-        	if(deltaV < 0.4) {
+        	if(deltaV < 0.3 && deltaV > 0.1) {
         		x = (100.0*(deltaV/0.6))/1.5;
-        
+        		pwm1 = 0;
+        		pwm2 = 100 - x;
         	}
         	if(deltaV <= 0.1){
-        		x = 0.0;
-        
+        		//x = 0.0;
+        		pwm1 = 0;
+        		pwm2 = 100;
         	}
-        	pwm1 = 0;
-        	pwm2 = abs(20.0 - x); //100
-        	
+   	
         }
         
         
-        /*TR0=0; // Stop timer 0
-		TH0=0; 
-		TL0=0; // Reset the timer
-		if (Comparator!=1){ // Wait for the signal to be zero	
-		TR0=1;
-		flagcomp=2;
-		} // Start timing, when comparator == 0
-		while (Comparator!=1)
-		{ 
-			if(TF0 == 1){
-			TF0 = 0;
-			count++;
-			}
-		}
-		if(Comparator!=0 && flagcomp==2){
-		TR0=0;
-		} // Stop timer 0, comparator == 1
-		Period=(TH0*256.0+TL0);
-		if(TR0==0 && Period>1.0){
-		printf("comparator counter = %5.3f\n", Period);
-		}*/
-	
+     
+        if(start_timer_flag == 0 && Comparator == 0){
+        	TH0=0; 
+			TL0=0; // Reset the timer
+			TR0=1; // Stop timer 0
+			start_timer_flag = 1;
+        }
 		
-   		
-        
+		if (Comparator==0){ // Wait for the signal to be zero	
+			flagcomp=1;
+			if(TF0 == 1){
+				TF0 = 0;
+				count++;
+			}
+		} // Start timing, when comparator == 0
+		
+		if(Comparator==1 && flagcomp==1){
+			TR0=0;
+			// Stop timer 0, comparator == 1
+			Period=(count*65536.0+TH0*256.0+TL0);
+			printf("period = %5.3f\r\n", Period);
+			checkinstruction(Period);
+			Period = 0.0;
+			flagcomp = 0;
+		}
+		
+
      /*
         if (Comparator == 0 && flag == 0){ //detects signal sent from guide wire
 			TR0 = 1;
@@ -455,43 +542,58 @@ void main (void)
 		TF0 = 0;
 		count++;
 		}*/
-      
+      	if(turn_180_flag==1){
+
+				pwm1 = 100;
+				pwm2 = 0;
+				pwm3 = 0;
+				pwm4 = 100;
+				waitms(1200);
+				turn_180_flag=0;
+		}
        
     }
    
 }
 
-void checkinstruction(int count){
-	if(count > 800 && count < 1750){//button1
+
+void checkinstruction(float Period){
+	if(Period > 400000.00 && Period < 550000.00){//button1
 	   stopflag=~stopflag;
-	 //  printf("stopflag = %d\n", stopflag);
+	   printf("stopflag = %d\n", stopflag);
 	}
-	/*if(count > 1780 && count < 2150){ //button2
-		backward();
+	if(Period > 580000.00 && Period < 630000.00){ //button2
+		turnleftflag  = 1;
 	}
-	if(count > 2180 && count < 2580){//button3
-	  turnleftflag=1;
+	if(Period > 700000.00 && Period < 780000.00){//button3
+		turnrightflag = 1;
 	}
-	if(count > 2690 && count < 2980){//button4
+	/*if(Period > 840000.00 && Period < 930000.00){//button4
 	//
 	}
-	if(count > 2990 && count < 3400){//button5
+	if(Period > 950000.00 && Period < 1000000.00){//button5
 	  //instruction
 	}
-	if(count > 3410 && count < 3860){ //button6
+	if(Period > 1100000.00 && Period < 1200000.00){ //button6
 	//instruction
 	}
-	if(count>3870){ //button 7
+	if(Period>1200000.00){ //button 7
 	//instruction
 	}*/
+	
+	//Period = 0.0;
+	
 	return;
 }
 
 void car_go (void){
-	pwm1_temp = pwm1;
+
+	printf("Test\r");
+	/*pwm1_temp = pwm1;
     pwm2_temp = pwm2;
     pwm3_temp = pwm3;
     pwm4_temp = pwm4;
+    */
     
     pwm1= 100;
     pwm2= 0;
@@ -534,4 +636,13 @@ void backward (void){
 
 
 
+
+
+
+void save_pwm_temp (void) {
+	pwm1_temp = pwm1;
+    pwm2_temp = pwm2;
+    pwm3_temp = pwm3;
+    pwm4_temp = pwm4;
+}
 
