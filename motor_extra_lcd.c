@@ -270,7 +270,8 @@ void main (void)
 //	float comparator_counter;
 	int count=0;
 	int start_timer_flag = 0;
-	int turn_180_flag = 1;
+	int turn_180_flag = 0;
+	int back_flag = 1;
 
 	PORT_Init();     // Initialize Port I/O
 	SYSCLK_Init ();  // Initialize Oscillator
@@ -316,7 +317,7 @@ void main (void)
    		deltaV = 0.0;
    		}
 
-   		//printf("Vmiddle=%5.3f, Vleft=%5.3f, Vright=%5.3f, delta =%5.3f\r\n",V[0], V[1], V[2], deltaV);
+  
         
 		/*if(V[0] >= 2.2  && stopflag==0 && turnrightflag == 1 ){  //detecting intersection, usually V[0] = 0, 
 				pwm1= 0;
@@ -392,7 +393,6 @@ void main (void)
 			}
 		*/
 		
-	//	turn_180();
 	
 		// turn 180
 		//Left wheel turns forward, right wheel turns backward
@@ -428,14 +428,14 @@ void main (void)
 		// pwm3 right wheel motor for pin 2.5
 		// pwm4 right wheel motor for pin 2.4	
         
-        if(V[2]/V[1] == 1 && stopflag==0){ //when right wheel = left wheel
+        if(V[2]/V[1] == 1 && stopflag==0 && back_flag==0){ //when right wheel = left wheel
         	pwm1 = 0;  
         	pwm2 = 100;  
         	pwm3 = 0;  
         	pwm4 = 100;
         } 
         	
-        if(V[1]>V[2]  && stopflag==0){ //right wheel is closer than left wheel, decrease right pwm Vleft>Vright
+        if(V[1]>V[2]  && stopflag==0 && back_flag==0){ //right wheel is closer than left wheel, decrease right pwm Vleft>Vright
         	pwm1 = 0;    // set left wheel at highest speed
         	pwm2 = 100; 
         	if(deltaV >= 0.5){
@@ -462,7 +462,7 @@ void main (void)
         //	pwm3 = abs(40.0 - x); 
     	}
         	
-        if(V[1]<V[2]  && stopflag==0){ //left wheel is closer, decrease left pwm.... Vleft<Vright
+        if(V[1]<V[2]  && stopflag==0  && back_flag==0){ //left wheel is closer, decrease left pwm.... Vleft<Vright
         	pwm3 = 0;  //set right wheel at max speed
         	pwm4 = 100;
         	if(deltaV >= 0.5){
@@ -511,7 +511,7 @@ void main (void)
 			Period=(count*65536.0+TH0*256.0+TL0);
 			printf("period = %5.3f\r\n", Period);
 			checkinstruction(Period);
-			Period = 0.0;
+		//	Period = 0.0;
 			flagcomp = 0;
 		}
 		
@@ -542,6 +542,9 @@ void main (void)
 		TF0 = 0;
 		count++;
 		}*/
+		
+		// Turn 180
+		
       	if(turn_180_flag==1){
 
 				pwm1 = 100;
@@ -551,6 +554,92 @@ void main (void)
 				waitms(1200);
 				turn_180_flag=0;
 		}
+		
+		// Backwards
+		
+		/*
+		pwm1 "right" wheel
+ 		pwm2 "right" wheel 
+		pwm3 "left" wheel 
+		pwm4 "left" wheel 
+		
+		pwm 1 & 3 = "forward"
+		pwm 2 & 4 = "backward"
+		
+		V[0]middle inductor
+   		V[1]"right" inductor 
+      	V[2]"left" inductor
+		*/
+		
+		printf("Vmiddle=%5.3f, Vright=%5.3f, Vleft=%5.3f, delta =%5.3f\r",V[0], V[1], V[2], deltaV);
+		 
+		// Go "forward"
+		 
+		if(V[2]/V[1] == 1 && stopflag==0  && back_flag==1){ //when right wheel = left wheel
+        	pwm1 = 60; 
+        	pwm2 = 0;  
+       		pwm3 = 60;
+        	pwm4 = 0;  
+       	 } 
+        	
+        // V"right">V"left"
+        // Turn left	
+        if(V[1]>V[2]  && stopflag==0 && back_flag==1){ //right wheel is closer than left wheel, decrease right pwm Vleft>Vright
+        	pwm1 = 60; 
+        	pwm2 = 0;    // set right wheel speed
+        	if(deltaV >= 0.5){
+        		x = 0.0;
+        		pwm3 = 0.0;
+        		pwm4 = 60.0 - x;
+        	}   
+        	if(deltaV >= 0.4 && deltaV < 0.5){
+        		x = 100.0*(deltaV/0.6);
+        		pwm3 = 0.0;
+        		pwm4 = 60.0 - x;
+       
+        	}
+        	if(deltaV < 0.4 && deltaV > 0.1) {
+        		x = (100.0*(deltaV/0.6))/1.5; 
+        		pwm3 = 60.0 - x;
+        		pwm4 = 0.0;
+        	}
+        	if(deltaV <= 0.1){
+        		x = 0.0;
+        		pwm3 = 60.0 - x;
+        		pwm4 = 0.0;
+        	}
+         
+    	}
+        
+    	// V"right"<V"left"
+    	//Turn Right
+        if(V[1]<V[2]  && stopflag==0 && back_flag==1){ 
+        	pwm3 = 60;
+        	pwm4 = 0;  //set "left" wheel at max speed
+        	// turn "right"
+        	if(deltaV >= 0.5){
+        		//x = 0.0;
+        		pwm1 = 0;
+        		pwm2 = 60;
+        	}
+        	// adjust "right" wheel speed to correct car
+        	if(deltaV >= 0.3 && deltaV < 0.5){
+        		x = 100.0*(deltaV/0.6);
+        		pwm1 = 0;
+        		pwm2 = 60 - x;
+        	}
+        	if(deltaV < 0.3 && deltaV > 0.1) {
+        		x = (100.0*(deltaV/0.6))/1.5;
+        		pwm1 = 60 - x;
+        		pwm2 = 0;
+        	}
+        	// go "forward"
+        	if(deltaV <= 0.1){
+        		//x = 0.0;
+        		pwm1 = 60;
+        		pwm2 = 0;
+        	}
+        }
        
     }
    
