@@ -81,13 +81,13 @@ char _c51_external_startup (void)
 	return 0;
 }
 
-void PORT_Init (void)
+/*void PORT_Init (void)
 {
 	P0MDOUT |= 0x10; // Enable UART TX as push-pull output
 	XBR0=0b_0000_0001; // Enable UART on P0.4(TX) and P0.5(RX)                    
 	XBR1=0b_0101_0000; // Enable crossbar.  Enable T0 input.
 	//XBR2=0b_0000_0000;
-}
+}*/
 
 void SYSCLK_Init (void)
 {
@@ -275,7 +275,7 @@ void waitms (unsigned int ms)
     volatile int pwm3_temp;
     volatile int pwm4_temp;
 
-void checkinstruction(float);
+void checkinstruction(int);
 void car_go(void);
 void stop(void);
 
@@ -305,15 +305,15 @@ void main (void)
 	float x=0.0;
 	float deltaV;
 	volatile float V[4];
-	float Period;
+//	float Period;
 	int flag=0;  //for intersection
 	int flagcomp=0;
 //	stopflag=1;
 //	float comparator_counter;
 	int count=0;
 	int start_timer_flag = 0;
-	int turn_180_flag = 0;
-	int back_flag = 1;
+//	int turn_180_flag = 0;
+	int back_flag = 0;
 	int a = 0;
 
 	//PORT_Init();     // Initialize Port I/O
@@ -328,13 +328,10 @@ void main (void)
 	InitPinADC(2, 0); // Configure P2.0 as analog input ---  middle inductor
 	InitPinADC(2, 1); // Configure P2.1 as analog input ---  right inductor
 	InitPinADC(2, 2); // Configure P2.2 as analog input ---  left inductor
-	InitPinADC(1,7); // Configure P1.7 as analog input -- back inductor
-	TF0 = 0;
+	InitPinADC(1, 7); // Configure P1.7 as analog input -- back inductor
+	//TF0 = 0;
 	
-
 	
-
-		
 	while(1)
 	{
 		
@@ -342,33 +339,28 @@ void main (void)
    		V[1]=Volts_at_Pin(LQFP32_MUX_P2_2); //left inductor
         V[2]=Volts_at_Pin(LQFP32_MUX_P2_1); //right inductor
         V[3]=Volts_at_Pin(LQFP32_MUX_P1_7); //back inductor
+		
+		
+		if(V[1] > V[2]){      //left wheel voltage > right wheel voltage
+   		deltaV = V[1] - V[2];
+   		}
+   		else if(V[2] > V[1]){ //right wheel voltage > left wheel voltage
+   		deltaV = V[2] - V[1];
+   		}
+   		else{                 //right wheel voltage = left wheel voltage
+   		deltaV = 0.0;
+   		}
+	
 		// UART1
+		if(Comparator == 0 && deltaV <= 0.15 && V[0]<1.1){
 		c = getchar1();
 		a = (int) c;
 		checkinstruction(a);
 		printf("a = %d\n", c);
+		}
         
 		
-		//printf("Vmiddle=%5.3f, Vleft=%5.3f, Vright=%5.3f, Vback= %5.3f, delta =%5.3f\r",V[0], V[1], V[2], V[3], deltaV);
-		//-------------Backwards CODE--------//
-		//---------------------------------//
-		if(V[3]<1){
-			if(V[0]>1.6){
-			pwm3=70;
-			pwm4=0;
-			pwm1=0;
-			pwm2=10;
-			waitms(50);
-			}
-			if(V[0]>0.5 && V[0]<1.6){//turn left
-			pwm1=70;
-			pwm2=0;
-			pwm3=0;
-			pwm4=10;
-			waitms(50);
 		
-			}
-		}
 		//-------------Backwards Code Done--------//
 		
 		//-------------STOP CODE--------//
@@ -384,15 +376,26 @@ void main (void)
 		//---------------------------------//
        	
        
-		if(V[1] > V[2]){      //left wheel voltage > right wheel voltage
-   		deltaV = V[1] - V[2];
-   		}
-   		else if(V[2] > V[1]){ //right wheel voltage > left wheel voltage
-   		deltaV = V[2] - V[1];
-   		}
-   		else{                 //right wheel voltage = left wheel voltage
-   		deltaV = 0.0;
-   		}
+   		printf("Vmiddle=%5.3f, Vleft=%5.3f, Vright=%5.3f, Vback= %5.3f, delta =%5.3f\r",V[0], V[1], V[2], V[3], deltaV);
+		//-------------Backwards CODE--------//
+		//---------------------------------//
+	/*	if(V[3]<1){
+			if(V[0]>1.6){
+			pwm3=70;
+			pwm4=0;
+			pwm1=0;
+			pwm2=10;
+			waitms(50);
+			}
+			if(V[0]>0.5 && V[0]<1.6){//turn left
+			pwm1=70;
+			pwm2=0;
+			pwm3=0;
+			pwm4=10;
+			waitms(50);
+		
+			}
+		}*/
 		
 		/*if(V[0] >= 2.2  && stopflag==0 && turnrightflag == 1 ){  //detecting intersection, usually V[0] = 0, 
 				pwm1= 0;
@@ -565,7 +568,7 @@ void main (void)
         
         
      
-        if(start_timer_flag == 0 && Comparator == 0){
+        /*if(start_timer_flag == 0 && Comparator == 0){
         	TH0=0; 
 			TL0=0; // Reset the timer
 			TR0=1; // Stop timer 0
@@ -588,7 +591,7 @@ void main (void)
 			checkinstruction(Period);
 		//	Period = 0.0;
 			flagcomp = 0;
-		}
+		}*/
 		
 
      /*
@@ -620,7 +623,7 @@ void main (void)
 		
 		// Turn 180
 		
-      	if(turn_180_flag==1){
+      /*	if(turn_180_flag==1){
 
 				pwm1 = 100;
 				pwm2 = 0;
@@ -629,24 +632,10 @@ void main (void)
 				waitms(1200);
 				turn_180_flag=0;
 		}
+	*/	
+	
 		
-		// Backwards
-		
-		/*
-		pwm1 "right" wheel
- 		pwm2 "right" wheel 
-		pwm3 "left" wheel 
-		pwm4 "left" wheel 
-		
-		pwm 1 & 3 = "forward"
-		pwm 2 & 4 = "backward"
-		
-		V[0]middle inductor
-   		V[1]"right" inductor 
-      	V[2]"left" inductor
-		*/
-		
-		printf("Vmiddle=%5.3f, Vright=%5.3f, Vleft=%5.3f, delta =%5.3f\r",V[0], V[1], V[2], deltaV);
+	//	printf("Vmiddle=%5.3f, Vright=%5.3f, Vleft=%5.3f, delta =%5.3f\r",V[0], V[1], V[2], deltaV);
 		 
 		// Go "forward"
 		/*
@@ -659,7 +648,7 @@ void main (void)
 		 }
 		 */
 		 // if middle inductor voltage is close to zero, move forward
-		if(V[0]<0.6){
+	/*	if(V[0]<0.6){
 			pwm1=40;
 			pwm2=0;
 			pwm3=40;
@@ -700,7 +689,7 @@ void main (void)
 				
 			}
 				
-		 }	
+		 	
 		// turn 
 		if (V[0] > 1.9) && (deltaV > 1.0 ) {
 			printf("turning");
@@ -718,7 +707,7 @@ void main (void)
 				pwm3 = 20;
 				pwm4 = 0;		 
 			}
-		}
+		}*/
 		
 		/*if(V[2]/V[1] == 1 && stopflag==0  && back_flag==1){ //when right wheel = left wheel
         	pwm1 = 40; 
@@ -791,27 +780,27 @@ void main (void)
 }
 
 
-void checkinstruction(float Period){
-	if(Period > 400000.00 && Period < 550000.00){//button1
+void checkinstruction(int a){
+	if(a == -1){//button1
 	   stopflag=~stopflag;
 	   printf("stopflag = %d\n", stopflag);
 	}
-	if(Period > 580000.00 && Period < 630000.00){ //button2
-		turnleftflag  = 1;
-	}
-	if(Period > 700000.00 && Period < 780000.00){//button3
-		turnrightflag = 1;
-	}
-	/*if(Period > 840000.00 && Period < 930000.00){//button4
+//	if(a == -2){ //button2
+//		turnleftflag  = 1;
+//	}
+//	if(a == -4){//button3
+//		turnrightflag = 1;
+//	}
+	/*if(a == -8){//button4
 	//
 	}
-	if(Period > 950000.00 && Period < 1000000.00){//button5
+	if(a == -16){//button5
 	  //instruction
 	}
-	if(Period > 1100000.00 && Period < 1200000.00){ //button6
+	if(a == -32){ //button6
 	//instruction
 	}
-	if(Period>1200000.00){ //button 7
+	if(a == -64){ //button 7
 	//instruction
 	}*/
 	
