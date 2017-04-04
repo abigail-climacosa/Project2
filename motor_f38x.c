@@ -66,7 +66,8 @@ char _c51_external_startup (void)
 	P0MDOUT |= 0x10; // Enable UTX as push-pull output
 	XBR0     = 0x01; // Enable UART on P0.4(TX) and P0.5(RX)                     
 	XBR1     = 0x40; // Enable crossbar and weak pull-ups
-
+	XBR2     = 0x01;      // Enable UART1 on P0.0(TX1) and P0.1(RX1)
+	
 	// Initialize timer 2 for periodic interrupts
 	TMR2CN=0x00;   // Stop Timer2; Clear TF2;
 	CKCON|=0b_0001_0000;
@@ -85,7 +86,7 @@ void PORT_Init (void)
 	P0MDOUT |= 0x10; // Enable UART TX as push-pull output
 	XBR0=0b_0000_0001; // Enable UART on P0.4(TX) and P0.5(RX)                    
 	XBR1=0b_0101_0000; // Enable crossbar.  Enable T0 input.
-	XBR2=0b_0000_0000;
+	//XBR2=0b_0000_0000;
 }
 
 void SYSCLK_Init (void)
@@ -131,6 +132,47 @@ void UART0_Init (void)
 	TR1 = 1; // START Timer1
 	TI = 1;  // Indicate TX0 ready
 }
+
+void UART1_Init (unsigned long baudrate)
+{
+	SMOD1 = 0x0C; // no parity, 8 data bits, 1 stop bit
+	SCON1 = 0x10;
+
+	if (((SYSCLK/baudrate)/2L)/0xFFFFL < 1)
+	{
+		SBRL1 = 0x10000L-((SYSCLK/baudrate)/2L);
+		SBCON1 |= 0x03; // set prescaler to 1
+	}
+	else if (((SYSCLK/baudrate)/2L)/0xFFFFL < 4)
+	{
+		SBRL1 = 0x10000L-(((SYSCLK/baudrate)/2L)/4L);
+		SBCON1 &= ~0x03;
+		SBCON1 |= 0x01; // set prescaler to 4
+	}
+	else if (((SYSCLK/baudrate)/2)/0xFFFFL < 12)
+	{
+		SBRL1 = 0x10000L-(((SYSCLK/baudrate)/2L)/12L);
+		SBCON1 &= ~0x03; // set prescaler to 12
+	}
+	else
+	{
+		SBRL1 = 0x10000L-(((SYSCLK/baudrate)/2L)/48L);
+		SBCON1 &= ~0x03;
+		SBCON1 |= 0x02; // set prescaler to ?
+	}
+	SCON1 |= 0x02;    // indicate ready for TX
+	SBCON1 |= 0x40;   // enable baud rate generator
+}
+
+char getchar1 (void)
+{
+	char c;
+	while (!(SCON1 & 0x01));
+	SCON1 &= ~0x01;
+	SCON1&=0b_0011_1111;
+	c = SBUF1;
+	return (c);
+} 
 
  void TIMER0_Init(void)
 {
@@ -259,7 +301,7 @@ unsigned int turnrightflag=0;
 
 void main (void)
 {	
-
+	char c;
 	float x=0.0;
 	float deltaV;
 	volatile float V[4];
@@ -272,9 +314,12 @@ void main (void)
 	int start_timer_flag = 0;
 	int turn_180_flag = 0;
 	int back_flag = 1;
+	int a = 0;
 
-	PORT_Init();     // Initialize Port I/O
+	//PORT_Init();     // Initialize Port I/O
 	SYSCLK_Init ();  // Initialize Oscillator
+	XBR2 |= 0b0000_0001; //pin 0.1
+	UART1_Init(50);
 	UART0_Init();    // Initialize UART0
 	TIMER0_Init();
 
@@ -297,6 +342,11 @@ void main (void)
    		V[1]=Volts_at_Pin(LQFP32_MUX_P2_2); //left inductor
         V[2]=Volts_at_Pin(LQFP32_MUX_P2_1); //right inductor
         
+		// UART1
+		c = getchar1();
+		a = (int) c;
+		checkinstruction(a);
+		printf("a = %d\n", c);
         
         if(stopflag==-1){
         pwm1=0;
