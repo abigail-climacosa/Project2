@@ -279,6 +279,7 @@ void waitms (unsigned int ms)
 void checkinstruction(int);
 void car_go(void);
 void stop(void);
+void blinky(void);
 
 void Timer2_ISR (void) interrupt 5
 {
@@ -293,6 +294,12 @@ void Timer2_ISR (void) interrupt 5
 	RIGHT2=pwm_count>pwm4?0:1; //when pwm4 > pwm 3, moves forward
 	
 }
+void longdelay (void)
+{
+	unsigned int i, j;
+	for(j=0; j<3; j++)
+		for(i=0; i<0x8000; i++);
+}
 
 
 unsigned int turnleftflag=0;
@@ -302,6 +309,7 @@ int back_flag=0;
 int turn_180_flag=0;
 float deltaV;
 volatile float V[4];
+int ab;
 
 
 void main (void)
@@ -335,7 +343,7 @@ void main (void)
 	InitPinADC(1, 7); // Configure P1.7 as analog input -- back inductor
 	
 	//TF0 = 0;
-//	LED=1;
+	
 	while(1)
 	{
 		
@@ -345,8 +353,6 @@ void main (void)
         V[3]=Volts_at_Pin(LQFP32_MUX_P1_7); //back inductor
 		//printf("Vmiddle=%5.3f, Vright=%5.3f, Vleft=%5.3f, Vback= %5.3f, delta =%5.3f\r",V[0], V[1], V[2], V[3], deltaV);
 		
-		
-	//	printf("LED = %d\r", LED);
 		
 		
 		if(V[1] > V[2]){      //left wheel voltage > right wheel voltage
@@ -364,6 +370,10 @@ void main (void)
 		a = (int) c;
 			if(a==-1 || a==-2 || a==-4 || a==-8 || a==-16){
 			printf("a = %d\n", c);
+		turnleftflag=0;
+		turnrightflag=0;
+		turn_180_flag=0;
+		back_flag=0;
 			checkinstruction(a);
 			}
 		}
@@ -381,59 +391,61 @@ void main (void)
 		  pwm3 right wheel motor for pin 2.5
 		  pwm4 right wheel motor for pin 2.4
 		*/	
+       
+        
         
         if(V[2]/V[1] == 1 && stopflag==0 && back_flag==0){ //when right wheel = left wheel
         	pwm1 = 0;  
-        	pwm2 = 80;  
+        	pwm2 = 50;  
         	pwm3 = 0;  
-        	pwm4 = 80;
+        	pwm4 = 50;
         } 
         	
        if(V[1]>V[2]  && stopflag==0 && back_flag==0){ //right wheel is closer than left wheel, decrease right pwm Vleft>Vright
         	pwm1 = 0;    // set left wheel at highest speed
-        	pwm2 = 70; 
+        	pwm2 = 60; 
         	if(deltaV >= 0.5){
         		x = 0.0;
-        		pwm4 = 60.0 - x;
+        		pwm4 = 45.0 - x;
         		pwm3 = 0.0;
         	}   
         	if(deltaV >= 0.4 && deltaV < 0.5){
-        		x = 60.0*(deltaV/0.6);
-        		pwm3 = 60.0 - x;
+        		x = 45.0*(deltaV/0.6);
+        		pwm3 = 45.0 - x;
         		pwm4 = 0.0;
         	}
         	if(deltaV < 0.4 && deltaV > 0.1) {
-        		x = (60.0*(deltaV/0.6))/1.5; 
-        		pwm3 = 60.0 - x;
+        		x = (45.0*(deltaV/0.6))/1.5; 
+        		pwm3 = 45.0 - x;
         		pwm4 = 0.0;
         	}
         	if(deltaV <= 0.1){
         		x = 0.0;
-        		pwm3 = 40.0 - x;
+        		pwm3 = 45.0 - x;
         		pwm4 = 0.0;
         	}
     	}
         	
         if(V[1]<V[2]  && stopflag==0  && back_flag==0){ //left wheel is closer, decrease left pwm.... Vleft<Vright
         	pwm3 = 0;  //set right wheel at max speed
-        	pwm4 = 70;
+        	pwm4 = 60;
         	if(deltaV >= 0.5){
         		pwm2 = 0;
-        		pwm1 = 60;
+        		pwm1 = 50;
         	}
         	if(deltaV >= 0.3 && deltaV < 0.5){
-        		x = 60.0*(deltaV/0.6);
+        		x = 50.0*(deltaV/0.6);
         		pwm2 = 0;
-        		pwm1 = 60.0 - x;
+        		pwm1 = 50.0 - x;
         	}
         	if(deltaV < 0.3 && deltaV >= 0.1) {
-        		x = (60.0*(deltaV/0.6))/1.5;
+        		x = (50.0*(deltaV/0.6))/1.5;
         		pwm1 = 0;
-        		pwm2 = 60.0 - x;
+        		pwm2 = 50.0 - x;
         	}
         	if(deltaV <= 0.1){
         		pwm1 = 0;
-        		pwm2 = 40;
+        		pwm2 = 45;
         	}
    	
         }
@@ -501,14 +513,15 @@ void main (void)
 		//------------- RIGHT TURN CODE ----------//
 		//----------------------------------------//
 		
-		if(V[0] >= 1.8  && stopflag==0 && turnrightflag == -1 ){  //detecting intersection, usually V[0] = 0, 
+		if(V[0] >= 1.84  && stopflag==0 && turnrightflag == -1 ){  //detecting intersection, usually V[0] = 0, 
 				turnrightflag=0;
-			//	LED=0;
+				//LED=0;
+			//	blinky();
 				pwm1= 0;
-	            pwm2= 70; //60 for usb
-                pwm3= 70; //60 for usb
+	            pwm2= 50; //60 for usb
+                pwm3= 50; //60 for usb
                 pwm4= 0;
-                waitms(1100); //900ms for usb 1100 for battery
+                waitms(1000); //900ms for usb 1100 for battery
                 while(deltaV>0.2){
                     //printf("Do we get here?\r");
                     V[0]=Volts_at_Pin(LQFP32_MUX_P2_0); //middle inductor
@@ -525,17 +538,19 @@ void main (void)
    					}
    					
     	           	pwm1= 0;
-		           	pwm2= 60;
-    	           	pwm3= 60;
+		           	pwm2= 50;
+    	           	pwm3= 50;
     	           	pwm4= 0;
 	            }	
 	            //car_go();
 	            pwm1 = 0;
-	            pwm2 = 70;
+	            pwm2 = 60;
 	            pwm3 = 0;
-	            pwm4 = 70;
+	            pwm4 = 60;
 	            waitms(500);//500 for battery 350 with usb
+	          
 	          // counterstop++;
+	          //turnrightflag=0;
 	           
 			// printf("stopflag = %d,\nturnleftflag = %d,\nturnrightflag = %d,\nbackflag = %d\n180 Flag= %d\ndeltaV= %5.3fV[0]=%5.3f\n", stopflag, turnleftflag, turnrightflag, back_flag, turn_180_flag,deltaV,V[0]);
         	// printf("Vmiddle=%5.3f, Vleft=%5.3f, Vright=%5.3f, Vback= %5.3f, delta =%5.3f\n\n\n",V[0], V[1], V[2], V[3], deltaV);
@@ -547,16 +562,16 @@ void main (void)
         	
        //------------- LEFT TURN CODE ---------------//
 	   //--------------------------------------------//
-	  
+	
 			
-		if(V[0] >= 1.8  && stopflag==0 && turnleftflag==-1){  //detecting intersection, usually V[0] = 0, //2.2 for USB,1.7 battery
+		if(V[0] >= 1.84  && stopflag==0 && turnleftflag==-1){  //detecting intersection, usually V[0] = 0, //2.2 for USB,1.7 battery
 				turnleftflag=0;
 			//	LED=0;
-				pwm1= 70;
+				pwm1= 60;
 	            pwm2= 0;
                 pwm3= 0;
-                pwm4= 70;
-                waitms(1100);
+                pwm4= 60;
+                waitms(500);
 				while(deltaV>0.25){
 				//	printf("Do we get here? %5.3f\r", deltaV);
                     V[0]=Volts_at_Pin(LQFP32_MUX_P2_0); //middle inductor
@@ -573,18 +588,19 @@ void main (void)
    						deltaV = 0.0;
    					}
    					
-    	           	pwm1= 60;
+    	           	pwm1= 50;
 		           	pwm2= 0;
     	           	pwm3= 0;
-    	           	pwm4= 60;
+    	           	pwm4= 50;
 	            }	
 	            //car_go();
 	            pwm1 = 0;
-	            pwm2 = 70;
+	            pwm2 = 50;
 	            pwm3 = 0;
-	            pwm4 = 70;
-	            waitms(350);
+	            pwm4 = 50;
+	            waitms(250);
 	            //turnleftflag=0;
+	          
 	           // counterstop++;
 	             // printf("stopflag = %d,\nturnleftflag = %d,\nturnrightflag = %d,\nbackflag = %d\n180 Flag= %d\ndeltaV= %5.3fV[0]=%5.3f\n", stopflag, turnleftflag, turnrightflag, back_flag, turn_180_flag,deltaV,V[0]);
         	 printf("Vmiddle=%5.3f, Vleft=%5.3f, Vright=%5.3f, Vback= %5.3f, delta =%5.3f\n\n\n",V[0], V[1], V[2], V[3], deltaV);
@@ -604,6 +620,11 @@ void main (void)
 				pwm3 = 0;
 				pwm4 = 80;
 				waitms(450);
+				pwm1=50;
+				pwm2=0;
+				pwm3=50;
+				pwm4=0;
+				waitms(200);
 				turn_180_flag=0;
 		}
 		//------------- TURN 180 CODE END ------------//
@@ -638,6 +659,7 @@ void checkinstruction(int a){
 	if(a == -2 && turnrightflag==0 && back_flag==0 && turn_180_flag==0){ //button2 left turn
 		stopflag=0;
 		turnleftflag=-1;
+		
 		printf("stopflag = %d,\nturnleftflag = %d,\nturnrightflag = %d,\nbackflag = %d\n180 Flag= %d\ndeltaV= %5.3fV[0]=%5.3f\n", stopflag, turnleftflag, turnrightflag, back_flag, turn_180_flag,deltaV,V[0]);
        	printf("Vmiddle=%5.3f, Vleft=%5.3f, Vright=%5.3f, Vback= %5.3f, delta =%5.3f\n\n\n",V[0], V[1], V[2], V[3], deltaV);
 		printf("turnleftflag = %d\n", turnleftflag);
@@ -692,6 +714,25 @@ void checkinstruction(int a){
 	}
 	
 	return;
+}
+
+void blinky(void){
+	PCA0MD&=(~0x40) ; // DISABLE WDT: clear Watchdog Enable bit
+	ab=0;
+    //Enable the Port I/O Crossbar
+    P1SKIP|=0x04;  //skip LED pin in crossbar assignments
+    XBR1=0x40;     //enable Crossbar
+    P1MDOUT|=0x08; //make LED pin output push-pull
+    P1MDIN|=0x08;  //make LED pin input mode digital
+    
+	while(ab<100)
+	{
+		P1_0=1;        //Led on
+		longdelay();
+		P1_0=0;        //Led off
+		longdelay();
+		ab++;
+	}
 }
 
 void car_go (void){

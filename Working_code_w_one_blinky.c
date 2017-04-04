@@ -14,7 +14,7 @@
 #define LEFT2 P2_6
 #define RIGHT1 P2_5
 #define RIGHT2 P2_4
-#define LED P1_0
+//#define LED P1_0
 #define Comparator P0_1  //for detecting the square wave
 
 char buffer[33]; // for turning int into string for LCD
@@ -343,7 +343,7 @@ void main (void)
 	InitPinADC(1, 7); // Configure P1.7 as analog input -- back inductor
 	
 	//TF0 = 0;
-	LED=1;
+	
 	while(1)
 	{
 		
@@ -353,8 +353,6 @@ void main (void)
         V[3]=Volts_at_Pin(LQFP32_MUX_P1_7); //back inductor
 		//printf("Vmiddle=%5.3f, Vright=%5.3f, Vleft=%5.3f, Vback= %5.3f, delta =%5.3f\r",V[0], V[1], V[2], V[3], deltaV);
 		
-		
-		printf("LED = %d\r", LED);
 		
 		
 		if(V[1] > V[2]){      //left wheel voltage > right wheel voltage
@@ -372,6 +370,10 @@ void main (void)
 		a = (int) c;
 			if(a==-1 || a==-2 || a==-4 || a==-8 || a==-16){
 			printf("a = %d\n", c);
+		turnleftflag=0;
+		turnrightflag=0;
+		turn_180_flag=0;
+		back_flag=0;
 			checkinstruction(a);
 			}
 		}
@@ -389,17 +391,7 @@ void main (void)
 		  pwm3 right wheel motor for pin 2.5
 		  pwm4 right wheel motor for pin 2.4
 		*/	
-        if(turnleftflag==-1){
-        	if(LED==1)
-        	{
-        		LED=0;
-        	}
-        	else
-        	{
-        		LED=1;
-        	}
-        	waitms(20);
-        } 
+       
         
         
         if(V[2]/V[1] == 1 && stopflag==0 && back_flag==0){ //when right wheel = left wheel
@@ -414,22 +406,22 @@ void main (void)
         	pwm2 = 60; 
         	if(deltaV >= 0.5){
         		x = 0.0;
-        		pwm4 = 50.0 - x;
+        		pwm4 = 45.0 - x;
         		pwm3 = 0.0;
         	}   
         	if(deltaV >= 0.4 && deltaV < 0.5){
-        		x = 50.0*(deltaV/0.6);
-        		pwm3 = 50.0 - x;
+        		x = 45.0*(deltaV/0.6);
+        		pwm3 = 45.0 - x;
         		pwm4 = 0.0;
         	}
         	if(deltaV < 0.4 && deltaV > 0.1) {
-        		x = (50.0*(deltaV/0.6))/1.5; 
-        		pwm3 = 50.0 - x;
+        		x = (45.0*(deltaV/0.6))/1.5; 
+        		pwm3 = 45.0 - x;
         		pwm4 = 0.0;
         	}
         	if(deltaV <= 0.1){
         		x = 0.0;
-        		pwm3 = 30.0 - x;
+        		pwm3 = 45.0 - x;
         		pwm4 = 0.0;
         	}
     	}
@@ -453,7 +445,7 @@ void main (void)
         	}
         	if(deltaV <= 0.1){
         		pwm1 = 0;
-        		pwm2 = 30;
+        		pwm2 = 45;
         	}
    	
         }
@@ -529,7 +521,7 @@ void main (void)
 	            pwm2= 50; //60 for usb
                 pwm3= 50; //60 for usb
                 pwm4= 0;
-                waitms(1100); //900ms for usb 1100 for battery
+                waitms(1000); //900ms for usb 1100 for battery
                 while(deltaV>0.2){
                     //printf("Do we get here?\r");
                     V[0]=Volts_at_Pin(LQFP32_MUX_P2_0); //middle inductor
@@ -556,7 +548,7 @@ void main (void)
 	            pwm3 = 0;
 	            pwm4 = 60;
 	            waitms(500);//500 for battery 350 with usb
-	            LED=1;
+	          
 	          // counterstop++;
 	          //turnrightflag=0;
 	           
@@ -579,7 +571,7 @@ void main (void)
 	            pwm2= 0;
                 pwm3= 0;
                 pwm4= 60;
-                waitms(700);
+                waitms(500);
 				while(deltaV>0.25){
 				//	printf("Do we get here? %5.3f\r", deltaV);
                     V[0]=Volts_at_Pin(LQFP32_MUX_P2_0); //middle inductor
@@ -603,12 +595,12 @@ void main (void)
 	            }	
 	            //car_go();
 	            pwm1 = 0;
-	            pwm2 = 45;
+	            pwm2 = 50;
 	            pwm3 = 0;
-	            pwm4 = 45;
+	            pwm4 = 50;
 	            waitms(250);
 	            //turnleftflag=0;
-	            LED=1;
+	          
 	           // counterstop++;
 	             // printf("stopflag = %d,\nturnleftflag = %d,\nturnrightflag = %d,\nbackflag = %d\n180 Flag= %d\ndeltaV= %5.3fV[0]=%5.3f\n", stopflag, turnleftflag, turnrightflag, back_flag, turn_180_flag,deltaV,V[0]);
         	 printf("Vmiddle=%5.3f, Vleft=%5.3f, Vright=%5.3f, Vback= %5.3f, delta =%5.3f\n\n\n",V[0], V[1], V[2], V[3], deltaV);
@@ -628,6 +620,11 @@ void main (void)
 				pwm3 = 0;
 				pwm4 = 80;
 				waitms(450);
+				pwm1=50;
+				pwm2=0;
+				pwm3=50;
+				pwm4=0;
+				waitms(200);
 				turn_180_flag=0;
 		}
 		//------------- TURN 180 CODE END ------------//
@@ -662,6 +659,7 @@ void checkinstruction(int a){
 	if(a == -2 && turnrightflag==0 && back_flag==0 && turn_180_flag==0){ //button2 left turn
 		stopflag=0;
 		turnleftflag=-1;
+		
 		printf("stopflag = %d,\nturnleftflag = %d,\nturnrightflag = %d,\nbackflag = %d\n180 Flag= %d\ndeltaV= %5.3fV[0]=%5.3f\n", stopflag, turnleftflag, turnrightflag, back_flag, turn_180_flag,deltaV,V[0]);
        	printf("Vmiddle=%5.3f, Vleft=%5.3f, Vright=%5.3f, Vback= %5.3f, delta =%5.3f\n\n\n",V[0], V[1], V[2], V[3], deltaV);
 		printf("turnleftflag = %d\n", turnleftflag);
