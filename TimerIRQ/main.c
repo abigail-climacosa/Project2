@@ -1,4 +1,4 @@
-#include "stm32f05xxx.h"
+ #include "stm32f05xxx.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -17,16 +17,22 @@ void Timer1ISR(void)
 {
 	TIM1_SR &= ~BIT0; // clear update interrupt flag
 	Count++;
-	if (Count > 10)
+	if (Count >  0)
 	{ 
 		Count = 0;
 		if (action == 0){
-			ToggleLED(); // toggle the state of the LED every second
+			ToggleLED(); // toggle the state of the LED
 		}
-		else if (action != 0){
-			action--;
+		else if (action != 0){ 
+			action--; 
+			GPIOA_ODR &= (0b00000000);
 		}
 	}   
+}
+
+void delay(int dly)
+{
+	while( dly--);
 }
 
 void SysInit(void)
@@ -38,7 +44,7 @@ void SysInit(void)
 	
 	// Set up timer
 	RCC_APB2ENR |= BIT11; // turn on clock for timer1
-	TIM1_ARR = 8;      // reload counter with 8000 at each overflow (equiv to 1ms)    CHANGED TO 800
+	TIM1_ARR = 250;      // reload counter with 8000 at each overflow (equiv to 1ms)
 	ISER |= BIT13;        // enable timer interrupts in the NVIC
 	TIM1_CR1 |= BIT4;     // Downcounting
 	TIM1_CR1 |= BIT0;     // enable counting
@@ -48,59 +54,113 @@ void SysInit(void)
 
 void ToggleLED(void) 
 {   
-	GPIOA_ODR ^= BIT0; // Toggle PA0
-	
+	GPIOA_ODR ^= BIT0; // Toggle PA0 
 }
 
 int main(void)
 {	
-	int stop_flag = false;
+	int bamboozling_baud_bit = 640;
 	SysInit();
 	while(1)
 	{    
-		if (GPIOA_IDR & BIT1) {
-		
-			while (GPIOA_IDR & BIT1);
-	
-			if (stop_flag == 0)
-				stop_flag = 1;
-			if (stop_flag == 1)
-				stop_flag = 0;
-			
-
-			switch (stop_flag) {
-				case 0:
-					action = 1;
-					break;
-				case 1:
-					action = 8;
-					break;
+		if (GPIOA_IDR & BIT1) { // button 1
+			delay(10000);
+			if (GPIOA_IDR & BIT1){
+				while (GPIOA_IDR & BIT1);
+				action = bamboozling_baud_bit;
+			}
+		}
+		if (GPIOA_IDR & BIT2) { // button 2
+			delay(10000);
+			if (GPIOA_IDR & BIT2){
+				while (GPIOA_IDR & BIT2);
+				 action = bamboozling_baud_bit*2;
+			}
+		}
+		if (GPIOA_IDR & BIT3) { // button 5
+			delay(10000);
+			if (GPIOA_IDR & BIT3){
+				while (GPIOA_IDR & BIT3);
+				action = bamboozling_baud_bit*5;
+			}
+		}
+		if (GPIOA_IDR & BIT4) { // button 6
+			delay(10000);
+			if (GPIOA_IDR & BIT4){
+				while (GPIOA_IDR & BIT4);
+				action = bamboozling_baud_bit*6;
+			}
+		}
+		if (GPIOA_IDR & BIT5) { // button 3
+			delay(10000);
+			if (GPIOA_IDR & BIT5){
+				while (GPIOA_IDR & BIT5);
+				action = bamboozling_baud_bit*3;
+				}
+		}
+		if (GPIOA_IDR & BIT6) { // button 7
+			delay(10000);
+			if (GPIOA_IDR & BIT6){
+				while (GPIOA_IDR & BIT6);
+				action = bamboozling_baud_bit*7;
+			}
+		}
+		if (GPIOA_IDR & BIT7) { // button 4
+			delay(10000);
+			if (GPIOA_IDR & BIT7){
+				while (GPIOA_IDR & BIT7);
+				action = bamboozling_baud_bit*4;
+			}
+		}
+	/*	if (GPIOA_IDR & BIT1) {
+			delay(10000);
+			if (GPIOA_IDR & BIT1){
+				while (GPIOA_IDR & BIT1);
+				action = 4000; // 2 button 1
 			}
 		}
 		if (GPIOA_IDR & BIT2) {
-			while (GPIOA_IDR & BIT2);
-			action = 2;
+			delay(10000);
+			if (GPIOA_IDR & BIT2){
+				while (GPIOA_IDR & BIT2);
+				action = 5000; // 4 button 2
+			}
 		}
 		if (GPIOA_IDR & BIT3) {
-			while (GPIOA_IDR & BIT3);
-			action = 5;
+			delay(10000);
+			if (GPIOA_IDR & BIT3){
+				while (GPIOA_IDR & BIT3);
+				action = 8000; //10 button 5
+			}
 		}
 		if (GPIOA_IDR & BIT4) {
-			while (GPIOA_IDR & BIT4);
-			action = 6;
+			delay(10000);
+			if (GPIOA_IDR & BIT4){
+				while (GPIOA_IDR & BIT4);
+				action = 9000; // 12 button 6
+			}
 		}
 		if (GPIOA_IDR & BIT5) {
-			while (GPIOA_IDR & BIT5);
-			action = 3;
+			delay(10000);
+			if (GPIOA_IDR & BIT5){
+				while (GPIOA_IDR & BIT5);
+				action = 6000; //6 button 3
+				}
 		}
 		if (GPIOA_IDR & BIT6) {
-			while (GPIOA_IDR & BIT6);
-			action = 7;
+			delay(10000);
+			if (GPIOA_IDR & BIT6){
+				while (GPIOA_IDR & BIT6);
+				action = 10000; // 14 button 7
+			}
 		}
 		if (GPIOA_IDR & BIT7) {
-			while (GPIOA_IDR & BIT7);
-			action = 4;
-		}
+			delay(10000);
+			if (GPIOA_IDR & BIT7){
+				while (GPIOA_IDR & BIT7);
+				action = 7000; //8 button 4
+			}
+		}*/
 			
 	
 	}

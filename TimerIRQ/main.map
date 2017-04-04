@@ -12,35 +12,36 @@ LOAD startup.o
 LOAD main.o
                 0x08000000                . = ORIGIN (flash)
 
-.text           0x08000000      0x2dc
+.text           0x08000000      0x380
  .text          0x08000000       0xc8 startup.o
                 0x08000000                Vector_Table
                 0x08000004                ResetVector
                 0x080000c0                Reset_Handler
                 0x080000c6                Default_Handler
- .text          0x080000c8      0x214 main.o
+ .text          0x080000c8      0x2b8 main.o
                 0x080000c8                Timer1ISR
-                0x08000124                SysInit
-                0x080001b8                ToggleLED
-                0x080001d4                main
+                0x08000130                delay
+                0x0800014c                SysInit
+                0x080001e0                ToggleLED
+                0x080001fc                main
 
-.glue_7         0x080002dc        0x0
- .glue_7        0x080002dc        0x0 linker stubs
+.glue_7         0x08000380        0x0
+ .glue_7        0x08000380        0x0 linker stubs
 
-.glue_7t        0x080002dc        0x0
- .glue_7t       0x080002dc        0x0 linker stubs
+.glue_7t        0x08000380        0x0
+ .glue_7t       0x08000380        0x0 linker stubs
 
-.vfp11_veneer   0x080002dc        0x0
- .vfp11_veneer  0x080002dc        0x0 linker stubs
+.vfp11_veneer   0x08000380        0x0
+ .vfp11_veneer  0x08000380        0x0 linker stubs
 
-.v4_bx          0x080002dc        0x0
- .v4_bx         0x080002dc        0x0 linker stubs
+.v4_bx          0x08000380        0x0
+ .v4_bx         0x08000380        0x0 linker stubs
 
-.iplt           0x080002dc        0x0
- .iplt          0x080002dc        0x0 startup.o
+.iplt           0x08000380        0x0
+ .iplt          0x08000380        0x0 startup.o
 
-.rel.dyn        0x080002dc        0x0
- .rel.iplt      0x080002dc        0x0 startup.o
+.rel.dyn        0x08000380        0x0
+ .rel.iplt      0x08000380        0x0 startup.o
                 0x20000000                . = ORIGIN (ram)
 
 .data           0x20000000        0x0
@@ -68,17 +69,17 @@ OUTPUT(main.elf elf32-littlearm)
  .comment       0x00000000       0x7f main.o
                                  0x80 (size before relaxing)
 
-.debug_line     0x00000000      0x22a
+.debug_line     0x00000000      0x23b
  .debug_line    0x00000000       0x3c startup.o
- .debug_line    0x0000003c      0x1ee main.o
+ .debug_line    0x0000003c      0x1ff main.o
 
-.debug_info     0x00000000      0x980
- .debug_info    0x00000000       0x57 startup.o
- .debug_info    0x00000057      0x929 main.o
+.debug_info     0x00000000      0x9ae
+ .debug_info    0x00000000       0x61 startup.o
+ .debug_info    0x00000061      0x94d main.o
 
-.debug_abbrev   0x00000000      0x216
+.debug_abbrev   0x00000000      0x23f
  .debug_abbrev  0x00000000       0x14 startup.o
- .debug_abbrev  0x00000014      0x202 main.o
+ .debug_abbrev  0x00000014      0x22b main.o
 
 .debug_aranges  0x00000000       0x40
  .debug_aranges
@@ -86,12 +87,12 @@ OUTPUT(main.elf elf32-littlearm)
  .debug_aranges
                 0x00000020       0x20 main.o
 
-.debug_str      0x00000000      0x4fd
- .debug_str     0x00000000      0x4fd main.o
-                                0x555 (size before relaxing)
+.debug_str      0x00000000      0x50e
+ .debug_str     0x00000000      0x50e main.o
+                                0x566 (size before relaxing)
 
-.debug_frame    0x00000000       0x84
- .debug_frame   0x00000000       0x84 main.o
+.debug_frame    0x00000000       0xa4
+ .debug_frame   0x00000000       0xa4 main.o
 
 Cross Reference Table
 
@@ -106,5 +107,6 @@ Timer1ISR                                         main.o
 ToggleLED                                         main.o
 Vector_Table                                      startup.o
 action                                            main.o
+delay                                             main.o
 main                                              main.o
                                                   startup.o
